@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated QR Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Fixed background, removing gradient for stability */
+            background: #4f46e5; 
+        }
+        .card {
+            background: #ffffff;
+            color: #1a202c;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            margin: auto;
+        }
+        .qr-icon {
+            color: #4f46e5;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        #qrcode {
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .iv-key-box {
+            background: #f1f5f9;
+            color: #1a202c;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 15px;
+            display: inline-block;
+            word-break: break-all;
+        }
+        .action-btn {
+            background: #4f46e5;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: none;
+            margin: 5px; 
+            display: inline-block;
+            text-decoration: none;
+        }
+        .action-btn:hover { background: #4338ca; }
+        .decrypt-btn {
+            background: #10b981; 
+        }
+        .decrypt-btn:hover {
+            background: #059669;
+        }
+        .error-message {
+            color: #ef4444;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="qr-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><path d="M7 14v.01"></path><path d="M10 17v.01"></path><path d="M17 10v.01"></path><path d="M17 7v.01"></path><path d="M7 7v.01"></path><path d="M10 10v.01"></path><path d="M10 14v.01"></path><path d="M7 17v.01"></path></svg>
+        </div>
+        <h1 class="text-2xl font-semibold mb-2">Generated QR Code</h1>
+        <p class="text-gray-600 mb-4">Your user details have been processed. Scan the code and use the key for decryption.</p>
+        
+        <div id="qrcode">
+            <p class="text-gray-400">Generating QR...</p>
+        </div>
+
+        <div class="mt-4">
+            <span class="text-sm font-normal text-gray-600 block mb-1">IV-key:</span>
+            <div id="iv-key-display" class="iv-key-box">Loading...</div>
+        </div>
+
+        <div class="mt-6 flex justify-center space-x-4">
+            <a href="dashboard.html" class="action-btn">New Entry</a>
+            <a href="decrypt.html" class="action-btn decrypt-btn">Go to Decryption Page</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const encryptedData = sessionStorage.getItem('encryptedData');
+            const ivKey = sessionStorage.getItem('ivKey');
+            
+            const qrcodeContainer = document.getElementById('qrcode');
+            const ivKeyDisplay = document.getElementById('iv-key-display');
+            
+            if (encryptedData && ivKey) {
+                
+                ivKeyDisplay.textContent = ivKey;
+
+                qrcodeContainer.innerHTML = '';
+                new QRCode(qrcodeContainer, {
+                    text: encryptedData,
+                    width: 256,
+                    height: 256,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+                // Clear the temporary QR data
+                sessionStorage.removeItem('encryptedData'); 
+                sessionStorage.removeItem('ivKey');
+                
+            } else {
+                ivKeyDisplay.textContent = "N/A";
+                qrcodeContainer.innerHTML = "<p class='error-message'>Error: Data missing. Please go back and try again.</p>";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Firebase Compat SDKs (v8 style) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            /* Changed to a static dark background color */
+            background-color: #2d3748; 
+        }
+
+        /* --- Notification styles --- */
+        #notification-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 14px;
+            max-width: 300px;
+            text-align: center;
+        }
+        #notification-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Card and Form Styles --- */
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            margin: 20px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            animation: fadeIn 1s ease-in-out;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 2.2em;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .card p {
+            color: #ccc;
+            margin-top: 0;
+            font-size: 1em;
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-section input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            box-sizing: border-box;
+            transition: background 0.3s ease;
+        }
+
+        .form-section input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-section button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #4A90E2;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .form-section button:hover {
+            background: #357ABD;
+            transform: translateY(-2px);
+        }
+
+        .toggle-link {
+            display: block;
+            margin-top: 20px;
+            color: #4A90E2;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-link:hover {
+            color: #fff;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .card {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1 id="form-title">Login</h1>
+        <p>Welcome to the Student Portal</p>
+
+        <!-- Login Section -->
+        <div id="login-section" class="form-section active">
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <a href="#" class="toggle-link" id="show-signup-link">Don't have an account? Sign Up</a>
+        </div>
+
+        <!-- Signup Section -->
+        <div id="signup-section" class="form-section">
+            <form id="signup-form">
+                <input type="text" id="signup-username" placeholder="Username" required>
+                <input type="text" id="signup-phone" placeholder="Phone Number" required>
+                <input type="email" id="signup-email" placeholder="Email" required>
+                <input type="password" id="signup-password" placeholder="Password" required>
+                <button type="submit">Sign Up</button>
+            </form>
+            <a href="#" class="toggle-link" id="show-login-link">Already have an account? Login</a>
+        </div>
+
+    </div>
+
+    <div id="notification-box"></div>
+
+    <script>
+        // --- Firebase Configuration and Initialization (using Compat SDK) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkKlxcCMrIgLa2MdNGir3FPdJS6SUVsmA",
+            authDomain: "qr-project-b3564.firebaseapp.com",
+            projectId: "qr-project-b3564",
+            storageBucket: "qr-project-b3564.firebasestorage.app",
+            messagingSenderId: "949499851662",
+            appId: "1:949499851662:web:cc0d55161091905149aadf",
+            measurementId: "G-CFJN9JXWZF"
+        };
+
+        // Initialize Firebase App
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // Get service instances
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const formTitle = document.getElementById('form-title');
+        const loginSection = document.getElementById('login-section');
+        const signupSection = document.getElementById('signup-section');
+        const showLoginLink = document.getElementById('show-login-link');
+        const showSignupLink = document.getElementById('show-signup-link');
+        const notificationBox = document.getElementById('notification-box');
+
+        function showNotification(message) {
+            notificationBox.textContent = message;
+            notificationBox.classList.add('show');
+            setTimeout(() => {
+                notificationBox.classList.remove('show');
+            }, 3000);
+        }
+
+        function showSection(sectionId) {
+            if (sectionId === 'login-section') {
+                loginSection.classList.add('active');
+                signupSection.classList.remove('active');
+                formTitle.textContent = 'Login';
+            } else {
+                signupSection.classList.add('active');
+                loginSection.classList.remove('active');
+                formTitle.textContent = 'Sign Up';
+            }
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+
+            try {
+                // Use compat SDK method on the 'auth' object
+                await auth.signInWithEmailAndPassword(email, password);
+                showNotification('Login successful! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = 'options.html';
+                }, 500);
+            } catch (error) {
+                showNotification(`Login failed: ${error.message}`);
+            }
+        });
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = signupForm['signup-email'].value;
+            const password = signupForm['signup-password'].value;
+            const username = signupForm['signup-username'].value;
+            const phoneNumber = signupForm['signup-phone'].value;
+
+            try {
+                // Use compat SDK method on the 'auth' object
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Use compat SDK method on the 'db' object
+                await db.collection("users").add({
+                    userId: user.uid,
+                    username: username,
+                    phoneNumber: phoneNumber,
+                    email: email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showNotification('Account created successfully! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = 'options.html';
+                }, 500);
+            } catch (error) {
+                showNotification(`Signup failed: ${error.message}`);
+            }
+        });
+
+        // --- Event Listeners for UI Transitions ---
+        showSignupLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSection('signup-section');
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSection('login-section');
+        });
+
+    </script>
+</body>
+</html>

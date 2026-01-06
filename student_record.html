@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secured Student Record</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1A202C, #2D3748, #4A5568);
+            padding: 2rem 0; /* Add padding for small screens */
+            position: relative;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        /* --- Grid Layout for Data Display --- */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .data-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #4A5568;
+        }
+        
+        .data-box strong {
+            color: #ffcc00;
+            display: block;
+            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+        
+        .data-box p {
+            font-size: 1.1rem;
+            margin: 0;
+            word-wrap: break-word;
+        }
+
+        /* --- Form Styling --- */
+        .form-section {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 2rem;
+            border-radius: 0.75rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #ccc;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .btn-submit {
+            background-color: #3498db;
+            background-image: linear-gradient(to right, #3498db 0%, #2980b9 100%);
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 9999px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Secured Student Record Update</h1>
+        <p class="text-center text-gray-300 mb-6">Review your Aadhaar details and enter the updated academic information.</p>
+
+        <h2 class="text-xl font-semibold mb-3">Aadhaar (Extracted) Details:</h2>
+        <div id="aadhaar-details-grid" class="data-grid">
+            <p class="text-red-400">Loading data...</p>
+        </div>
+        
+        <div class="form-section mt-8">
+            <h2 class="text-xl font-semibold mb-4">Academic & Contact Update:</h2>
+            <form id="update-form">
+                
+                <div class="data-grid">
+                    <div class="form-group">
+                        <label for="marks10">10th Class Marks / GPA</label>
+                        <input type="text" id="marks10" name="marks10" class="form-control" placeholder="e.g., 480/500 or 9.6 GPA" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="marks12">12th Class Marks / GPA</label>
+                        <input type="text" id="marks12" name="marks12" class="form-control" placeholder="e.g., 1150/1200 or 95%" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPhone">Updated Phone Number</label>
+                        <input type="tel" id="newPhone" name="newPhone" class="form-control" placeholder="Enter updated mobile number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newEmail">Updated Email Address</label>
+                        <input type="email" id="newEmail" name="newEmail" class="form-control" placeholder="Enter updated email" required>
+                    </div>
+                    <div class="form-group col-span-full">
+                        <label for="resume">Upload Latest Resume (Optional)</label>
+                        <input type="file" id="resume" name="resume" class="form-control">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">Securely Update Record</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const aadhaarDetailsGrid = document.getElementById('aadhaar-details-grid');
+            const dataForm = document.getElementById('update-form');
+
+            // 1. Retrieve the decrypted Aadhaar data and the decryption key (password)
+            const decryptedDataString = sessionStorage.getItem('decryptedData');
+            const currentDecryptionKey = sessionStorage.getItem('decryptionPassword');
+
+            if (!decryptedDataString || !currentDecryptionKey) {
+                aadhaarDetailsGrid.innerHTML = '<p class="text-red-400">Error: Missing Aadhaar data or security key. Please start from the verification page.</p>';
+                return;
+            }
+            
+            let fullStudentData = {};
+
+            // --- Function to Render Decrypted Aadhaar Data ---
+            const renderAadhaarData = (data) => {
+                aadhaarDetailsGrid.innerHTML = ''; // Clear loading message
+
+                // Parse the decrypted JSON
+                const decryptedAadhaar = JSON.parse(data);
+                fullStudentData = decryptedAadhaar; // Store the original data for merging later
+
+                // Loop through the data and display it in human-readable format
+                for (const key in decryptedAadhaar) {
+                    if (decryptedAadhaar.hasOwnProperty(key) && key !== 'email') { // Skip email, as it's typically for lookup/keying
+                        const keyLabel = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+                        let value = decryptedAadhaar[key];
+
+                        // Mask sensitive data (Aadhaar number) for display
+                        if (key.toLowerCase().includes('aadhar') && value.length > 4) {
+                            value = 'XXXXXXXX' + value.slice(-4);
+                        }
+                        
+                        // Create the box for each detail
+                        const detailBox = document.createElement('div');
+                        detailBox.classList.add('data-box');
+                        detailBox.innerHTML = `<strong>${keyLabel}:</strong> <p>${value}</p>`;
+                        aadhaarDetailsGrid.appendChild(detailBox);
+                    }
+                }
+                
+                // Pre-fill form fields with existing contact details for convenience
+                document.getElementById('newPhone').value = decryptedAadhaar.phone || '';
+                document.getElementById('newEmail').value = decryptedAadhaar.email || '';
+            };
+
+            // Initial rendering of the decrypted Aadhaar data
+            renderAadhaarData(decryptedDataString);
+
+            // --- Form Submission Logic (Re-Encryption) ---
+            dataForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                // 1. Collect updated data
+                const updatedMarks = {
+                    marks10: document.getElementById('marks10').value,
+                    marks12: document.getElementById('marks12').value,
+                    phone: document.getElementById('newPhone').value, // Overwrite original phone
+                    email: document.getElementById('newEmail').value, // Overwrite original email
+                    resumeUploaded: document.getElementById('resume').files.length > 0 ? "Yes" : "No"
+                };
+
+                // 2. Create the final object by merging original Aadhaar data with new updates
+                const finalData = { 
+                    ...fullStudentData, 
+                    ...updatedMarks,
+                    lastUpdated: new Date().toISOString()
+                };
+
+                const finalDataString = JSON.stringify(finalData);
+                
+                // 3. Re-encrypt the final data using the stored password key
+                try {
+                    // Use the currentDecryptionKey (the password) for re-encryption
+                    const reEncryptedData = CryptoJS.AES.encrypt(finalDataString, currentDecryptionKey).toString();
+                    
+                    // 4. Store the re-encrypted data and the key for the success page
+                    sessionStorage.setItem('reEncryptedData', reEncryptedData);
+                    // The password (key) is needed for the success page to decrypt/verify the final output
+                    sessionStorage.setItem('keyForSuccess', currentDecryptionKey); 
+
+                    // 5. Redirect to the success page
+                    window.location.href = 'update_success.html';
+
+                } catch (error) {
+                    console.error("Re-encryption failed:", error);
+                    alert("Submission failed due to an encryption error.");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

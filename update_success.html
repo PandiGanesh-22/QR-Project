@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Successful</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2ecc71, #27ae60); /* Green theme for success */
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            max-width: 700px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .data-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: left;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: 200px;
+        }
+        .data-box strong {
+            color: #ffcc00; /* Highlight key names */
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+        .data-box p {
+            margin-bottom: 0.5rem;
+        }
+        .btn-home {
+            background-color: #3498db;
+            background-image: linear-gradient(to right, #3498db 0%, #2980b9 100%);
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 2rem;
+        }
+        .btn-home:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Update Successful!</h1>
+        <p class="text-xl text-gray-200">Your record has been securely updated and re-encrypted with your password.</p>
+
+        <h2 class="text-2xl font-semibold mt-8 mb-4">Decrypted Updated Data (Verification)</h2>
+        
+        <div id="decryptedOutput" class="data-box text-gray-100">
+            <p>Loading decrypted data...</p>
+        </div>
+
+        <a href="options.html" class="btn-home">Return to Dashboard</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const decryptedOutput = document.getElementById('decryptedOutput');
+            
+            // 1. Retrieve the encrypted data and the password (key) from sessionStorage
+            const reEncryptedData = sessionStorage.getItem('reEncryptedData');
+            const ivKey = sessionStorage.getItem('keyForSuccess'); 
+
+            if (!reEncryptedData || !ivKey) {
+                decryptedOutput.innerHTML = '<p class="text-red-400">Error: Could not retrieve the final encrypted data or key.</p>';
+                return;
+            }
+
+            // 2. Decrypt the new string for verification display
+            try {
+                const decryptedBytes = CryptoJS.AES.decrypt(reEncryptedData, ivKey);
+                const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                const decryptedData = JSON.parse(decryptedString);
+
+                decryptedOutput.innerHTML = ''; // Clear loading message
+
+                // Display key-value pairs in the requested decrypted format
+                for (const key in decryptedData) {
+                    if (decryptedData.hasOwnProperty(key)) {
+                        const keyLabel = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+                        let value = decryptedData[key];
+
+                        // Mask Aadhaar number for display
+                        if (key.toLowerCase().includes('aadhar') && value.length > 4) {
+                            value = 'XXXXXXXX' + value.slice(-4);
+                        }
+                        
+                        // Output the decrypted details clearly
+                        decryptedOutput.innerHTML += `<p><strong>${keyLabel}:</strong> ${value}</p>`;
+                    }
+                }
+            } catch (error) {
+                console.error("Decryption Error for Verification:", error);
+                decryptedOutput.innerHTML = '<p class="text-red-400">Failed to decrypt data for verification. Data integrity check failed.</p>';
+            }
+        });
+    </script>
+</body>
+</html>

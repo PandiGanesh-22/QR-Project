@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhaar Unlock & Extraction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* (Your existing styles) */
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1A202C, #2D3748, #4A5568);
+            background-size: 400% 400%;
+            animation: gradient-pulse 15s ease infinite;
+            position: relative;
+        }
+
+        @keyframes gradient-pulse {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        input[type="text"], input[type="email"], input[type="password"], input[type="file"] {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        
+        input[type="file"]::file-selector-button {
+            background: #2D3748;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            margin-right: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #4A5568;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container">
+        <h2 class="text-3xl font-bold text-center mb-6">Aadhaar Unlock</h2>
+        <form id="aadhaarForm" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium mb-1">Email (Used as Identifier)</label>
+                <input type="email" id="email" name="email" required 
+                        class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium mb-1">Aadhaar Password (PIN + DOB Year)</label>
+                <input type="password" id="password" name="password" required 
+                        class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="aadhaarFile" class="block text-sm font-medium mb-1">Aadhaar PDF File</label>
+                <input type="file" id="aadhaarFile" name="aadhaarFile" required accept=".pdf"
+                        class="w-full px-4 py-2 rounded-lg">
+            </div>
+            <button type="submit" id="submitBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200">
+                Extract & Secure Save
+            </button>
+        </form>
+        <div id="message" class="mt-4 text-center font-medium"></div>
+    </div>
+
+<script>
+    const form = document.getElementById('aadhaarForm');
+    const messageDiv = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        messageDiv.textContent = 'Processing file... Please wait.';
+        messageDiv.style.color = '#f39c12';
+        submitBtn.disabled = true;
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const aadhaarFile = document.getElementById('aadhaarFile').files[0];
+
+        if (!email || !password || !aadhaarFile) {
+            messageDiv.textContent = 'ERROR: Please fill in all fields and select a file.';
+            messageDiv.style.color = '#e74c3c';
+            submitBtn.disabled = false;
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('aadhaarFile', aadhaarFile);
+
+        let success = false; 
+
+        try {
+            // *** 1. Send data to backend ***
+            const response = await fetch('http://localhost:3000/api/extract-aadhaar', {
+                method: 'POST',
+                body: formData
+            });
+
+            // Read response as text first for stable error handling
+            const respText = await response.text();
+            let result;
+            try {
+                result = respText ? JSON.parse(respText) : {};
+            } catch (e) {
+                result = { rawText: respText };
+            }
+
+            console.log('Fetch completed', { status: response.status, ok: response.ok, body: result });
+
+            if (response.ok && result && result.success) {
+                messageDiv.textContent = 'Data extracted, encrypted, and saved! Redirecting...';
+                messageDiv.style.color = '#2ecc71';
+                success = true;
+
+                // *** ABSOLUTE REDIRECTION LOGIC ***
+                const userEmail = result.userEmail || email;
+                
+                // Get the path up to the current folder (e.g., /QR_Project/aadhaar-ocr-project/)
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                
+                // Construct the full absolute URL
+                const finalRedirectUrl = window.location.origin + basePath + 'extracted_data.html?email=' + encodeURIComponent(userEmail);
+
+                console.log('Attempting ABSOLUTE Redirection to:', finalRedirectUrl);
+                window.location.href = finalRedirectUrl;
+
+                return; 
+            } else {
+                // Handle server-side errors
+                const serverMsg = (result && result.message) ? result.message : (result && result.rawText) ? result.rawText : 'Server failed to process the request.';
+                throw new Error(`${serverMsg} (status: ${response.status})`);
+            }
+
+        } catch (error) {
+            console.error("Client Error:", error);
+            
+            if (error.message.includes('Failed to fetch')) {
+                messageDiv.textContent = 'ERROR: Cannot connect to backend server. Is backend.js running in the terminal?';
+            } else {
+                const specificError = error.message.includes('password') || error.message.includes('Decryption failed')
+                    ? 'ERROR: Invalid Aadhaar Password or corrupted file. Please check your password (PIN + DOB Year).'
+                    : `ERROR: ${error.message}`;
+                messageDiv.textContent = specificError;
+            }
+            messageDiv.style.color = '#e74c3c';
+        } finally {
+            if (!success) {
+                submitBtn.disabled = false;
+            }
+        }
+    });
+</script>
+</body>
+</html>

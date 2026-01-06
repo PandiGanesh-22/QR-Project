@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decrypt QR Data</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        /* ... (Keep your existing styles) ... */
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1A202C, #2D3748, #4A5568);
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.4);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            color: #f39c12; 
+            margin-left: 1rem;
+        }
+        .encrypted-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #2D3748;
+            color: #fff;
+            border-radius: 0.5rem;
+        }
+        .btn-primary { background-color: #3498db; }
+        .btn-secondary { background-color: #f39c12; }
+        .notification-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+        .notification-box.show {
+            opacity: 1;
+            bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://via.placeholder.com/50/f39c12/FFFFFF?text=🔒" alt="Security Lock" class="w-12 h-12">
+            <h1>Decrypt Data</h1>
+        </div>
+        
+        <h2 class="text-xl font-semibold mb-2">1. Upload Aadhaar PDF (OCR Simulation)</h2>
+        <div class="form-group mb-4">
+            <label for="aadharUpload">Upload Aadhaar PDF/Image</label>
+            <input type="file" id="aadharUpload" accept=".pdf,.jpg,.png">
+            <button id="extractBtn" class="btn btn-secondary w-full p-3 font-semibold rounded-lg mt-2">Extract Details & Encrypt</button>
+        </div>
+
+        <hr class="my-6 border-gray-600">
+        
+        <h2 class="text-xl font-semibold mb-2">2. Scan QR Code</h2>
+        <div class="form-group">
+            <label for="qrCodeUpload">Upload QR Code Image</label>
+            <input type="file" id="qrCodeUpload" accept="image/*">
+        </div>
+
+        <div class="encrypted-box" id="encryptedDataBox">
+            <span class="text-gray-400">Encrypted data will appear here after you upload a QR code.</span>
+        </div>
+
+        <hr class="my-6 border-gray-600">
+        
+        <div class="mt-6">
+            <h2 class="text-xl font-semibold mb-4">3. Decrypt Data with Password</h2>
+            <div class="form-group">
+                <label for="passwordInput">Enter your Decryption Password</label>
+                <input type="text" id="passwordInput" placeholder="Enter your key/password here (e.g., ROHA2000)"> 
+                <p class="text-xs text-gray-400 mt-1">
+                    *Note: This password unlocks the Aadhaar details extracted in Step 1.
+                </p>
+            </div>
+            <button id="decryptBtn" class="btn btn-primary w-full p-3 font-semibold rounded-lg">Decrypt & Verify</button>
+        </div>
+    </div>
+    <div id="notification" class="notification-box"></div>
+
+    <script>
+        function showNotification(message, isError = false) {
+            const notificationBox = document.getElementById('notification');
+            notificationBox.textContent = message;
+            notificationBox.style.backgroundColor = isError ? '#dc3545' : '#28a745';
+            notificationBox.classList.add('show');
+            setTimeout(() => { notificationBox.classList.remove('show'); }, 3000);
+        }
+
+        // --- Simulated Aadhaar Data ---
+        const SIMULATED_AADHAAR_DATA = {
+            name: "Rohan Varma",
+            email: "rohan@example.com",
+            aadharNumber: "999900001234",
+            age: "24",
+            // Include extra data for robust simulation
+            fatherName: "Mr. Varma",
+            address: "123, Secure Lane",
+            dob: "01/01/2000" 
+        };
+        
+        // Initial encryption simulation variables
+        let initialEncryptedData = '';
+        const SIMULATED_PASSWORD_KEY = 'ROHA2000'; // Define a known password
+
+        // --- OCR Simulation & INITIAL Encryption Logic ---
+        document.getElementById('extractBtn').addEventListener('click', () => {
+            const fileInput = document.getElementById('aadharUpload');
+            if (!fileInput.files.length) {
+                showNotification("Please select an Aadhaar PDF or image to extract.", true);
+                return;
+            }
+            
+            try {
+                // 1. Convert extracted data to string
+                const dataString = JSON.stringify(SIMULATED_AADHAAR_DATA);
+                
+                // 2. Encrypt the data using the SIMULATED_PASSWORD_KEY
+                initialEncryptedData = CryptoJS.AES.encrypt(dataString, SIMULATED_PASSWORD_KEY).toString();
+
+                // 3. Store the encrypted data in session storage (This simulates saving the encrypted file)
+                sessionStorage.setItem('encryptedAadhaarData', initialEncryptedData);
+                
+                showNotification("Aadhaar details successfully extracted and encrypted using a default password.");
+            } catch (error) {
+                showNotification("Encryption failed during extraction.", true);
+                console.error("Extraction/Encryption Error:", error);
+            }
+        });
+
+        // --- QR Scan Simulation Logic ---
+        document.getElementById('qrCodeUpload').addEventListener('change', function(event) {
+            // Placeholder: Encrypted string (simulated from dashboard.html, which is now ignored)
+            document.getElementById('encryptedDataBox').textContent = 'U2FsdGVkX19q8x1b9z7D+XmQpB9Z2Jc3m5F7o8yT8mQ='; 
+            showNotification("QR code scanned and data loaded.");
+        });
+
+
+        // --- Decryption Logic ---
+        document.getElementById('decryptBtn').addEventListener('click', () => {
+            // We use the encrypted data saved from the extraction step
+            const encryptedAadhaar = sessionStorage.getItem('encryptedAadhaarData');
+            const passwordKey = document.getElementById('passwordInput').value;
+
+            if (!encryptedAadhaar) {
+                showNotification("Please extract Aadhaar details first (Step 1).", true);
+                return;
+            }
+
+            if (!passwordKey) {
+                showNotification("Please enter the decryption password.", true);
+                return;
+            }
+            
+            try {
+                // Try to decrypt the extracted data using the user's password
+                const decryptedBytes = CryptoJS.AES.decrypt(encryptedAadhaar, passwordKey);
+                const decryptedDataString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                
+                if (decryptedDataString) {
+                    showNotification("Data decrypted and verified successfully using your password!");
+                    
+                    // Store the decrypted data and the password for the next page
+                    sessionStorage.setItem('decryptedData', decryptedDataString);
+                    sessionStorage.setItem('decryptionPassword', passwordKey); 
+                    
+                    // Redirect to the display page
+                    window.location.href = 'student_record.html';
+                } else {
+                    showNotification("Decryption failed. Invalid password.", true);
+                }
+            } catch (error) {
+                console.error("Decryption Error:", error);
+                showNotification("Decryption failed. Invalid keys or data format.", true);
+            }
+        });
+    </script>
+</body>
+</html>

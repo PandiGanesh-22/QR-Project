@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Options</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase Compat SDKs (v8 style) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            background-color: #2c3e50;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 90%;
+            width: 600px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1.5rem;
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .action-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            padding: 1.25rem 2rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: none;
+            color: #fff;
+        }
+
+        .ocr-mode-btn {
+            background: linear-gradient(90deg, #9b59b6, #8e44ad);
+        }
+
+        .manual-entry-btn {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .action-btn svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        #logout-btn {
+            margin-top: 2rem;
+            background: #e74c3c;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #logout-btn:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="card">
+        <h1 class="title">Dashboard Options</h1>
+        <p class="text-gray-300">Please select your preferred method for data entry.</p>
+
+        <div class="action-container">
+            
+            <button id="ocr-btn" class="action-btn ocr-mode-btn">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 inline-block mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h-1.5m-3 0H9m1.5 3H9m1.5 3H9m-3 3h7.5m-7.5-3h7.5m-7.5-3h7.5m-7.5-3h7.5m3-6h3m-3 3h3m-3 3h3m-3 3h3M3 15h3.75a3 3 0 0 1 3 3v1.5h7.5a3 3 0 0 0 3-3V5.25A3 3 0 0 0 16.5 2.25H1.5A1.5 1.5 0 0 0 0 3.75v16.5Z" />
+                </svg>
+                OCR Mode
+            </button>
+            
+            <button id="manual-btn" class="action-btn manual-entry-btn">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 inline-block mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3m-3 3h3m-3 3h3m-3 3h3M3 15h3.75a3 3 0 0 1 3 3v1.5h7.5a3 3 0 0 0 3-3V5.25A3 3 0 0 0 16.5 2.25H1.5A1.5 1.5 0 0 0 0 3.75v16.5Z" />
+                </svg>
+                Manual Entry
+            </button>
+        </div>
+
+        <button id="logout-btn" class="font-medium">Logout</button>
+    </div>
+
+    <script>
+        // --- Firebase Configuration and Initialization (using Compat SDK) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkKlxcCMrIgLa2MdNGir3FPdJS6SUVsmA",
+            authDomain: "qr-project-b3564.firebaseapp.com",
+            projectId: "qr-project-b3564",
+            storageBucket: "qr-project-b3564.firebasestorage.app",
+            messagingSenderId: "949499851662",
+            appId: "1:949499851662:web:cc0d55161091905149aadf",
+            measurementId: "G-CFJN9JXWZF"
+        };
+
+        if (firebase.apps.length === 0) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // --- Auth Check (using compat syntax) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use firebase.auth().onAuthStateChanged()
+            firebase.auth().onAuthStateChanged((user) => {
+                if (!user) {
+                    // Path to index.html (in the root folder)
+                    window.location.replace('index.html'); 
+                }
+            });
+
+            // --- Event Listeners --
+            const ocrBtn = document.getElementById('ocr-btn');
+            const manualBtn = document.getElementById('manual-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            // MANUAL ENTRY 
+            if (manualBtn) {
+                manualBtn.addEventListener('click', () => {
+                    console.log("Attempting to redirect to Dashboard page.");
+                    // Path to dashboard.html (in the root folder)
+                    window.location.replace('dashboard.html'); 
+                });
+            }
+
+            // OCR MODE
+            if (ocrBtn) {
+                ocrBtn.addEventListener('click', () => {
+                    console.log("Attempting to redirect to OCR page.");
+                    // **FIXED PATH: Navigate into the subfolder to find ocr_page.html**
+                    window.location.replace('aadhaar-ocr-project/ocr_page.html'); 
+                });
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    // Use firebase.auth().signOut()
+                    firebase.auth().signOut().then(() => {
+                        // Path to index.html (in the root folder)
+                        window.location.replace('index.html');
+                    }).catch((error) => {
+                        console.error("Logout failed:", error);
+                    });
+                });
+            }
+        }); 
+    </script>
+</body>
+</html>
